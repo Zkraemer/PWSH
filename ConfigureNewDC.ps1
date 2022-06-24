@@ -1,6 +1,9 @@
 ####BEFORE STARTING####
-#Please place all scripts in the folder on your workstation ~\Documents\WindowsPowerShell\Scripts\
-#requires the following scripts:
+<#
+Please place all scripts in the folder on your workstation ~\Documents\WindowsPowerShell\Scripts\
+requires the following scripts:
+BuildCredentials.ps1
+#>
 
 #Configure New Server
 $serverName = (Read-Host -Prompt "Enter server Name")
