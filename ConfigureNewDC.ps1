@@ -1,38 +1,40 @@
 ####BEFORE STARTING####
-<#
-Please place all scripts in the folder on your workstation ~\Documents\WindowsPowerShell\Scripts\
-requires the following scripts:
-BuildCredentials.ps1
-#>
-
-#Configure New Server
-$serverName = (Read-Host -Prompt "Enter server Name")
-$networkAdapterInterfaceIndex = Get-NetAdapter -Name "Ethernet*" | where -Property Status -eq UP | select -ExpandProperty ifIndex
-$serverIPv4Address = (Read-Host -Prompt "Enter server IPv4 Address")
-$serverSubnetMask = (Read-Host -Prompt "Enter server Subnet Mask prefix length") #CIDR Notation
-$serverDNSAddresses = [System.Collections.ArrayList]::new()
-
-#Rename Server
-Rename-Computer -ComputerName $serverName -PassThru -Force
-Restart-Computer -Wait -For PowerShell -Timeout 300 -Delay 2
-
-#Configure Network on Server
-Get-NetIPAddress -InterfaceIndex $networkAdapterInterfaceIndex -AddressFamily IPv4 | Set-NetIPAddress -IPAddress $serverIPv4Address -PrefixLength $serverSubnetMask
-$x=1
-$collectDNS = do {
-    $serverDNSAddress = Read-Host "Enter DNS Server IPv4 Address $x"
-    $serverDNSAddresses.add(($serverDNSAddress))
-    $x++
-} While($x -le 2)
-$x=$null
-Get-DnsClientServerAddress -InterfaceIndex $networkAdapterInterfaceIndex -AddressFamily IPv4 | Set-DnsClientServerAddress -ServerAddresses $serverDNSAddresses
-Add-Computer
-Restart-Computer -Wait -For PowerShell -Timeout 300 -Delay 2
-
+#Please place all scripts in the folder on your workstation ~\Documents\WindowsPowerShell\Scripts\
 #Store Credentials required for script processes
 $PowershellScriptsDir = ("{0}\Documents\WindowsPowerShell\Scripts\" -f $env:USERPROFILE)
 cd $PowershellScriptsDir`
 "BuildCredentials.ps1"
+
+#Configure New Server
+$serverName = (Read-Host -Prompt "Enter server Name")
+$networkAdapterInterfaceIndex = Get-NetIPConfiguration -InterfaceAlias "Ethernet*" | select -ExpandProperty interfaceindex
+$serverIPv4Address = (Read-Host -Prompt "Enter server IPv4 Address")
+$serverSubnetMask = (Read-Host -Prompt "Enter server Subnet Mask prefix length") #CIDR Notation
+$serverDNSAddresses = [System.Collections.ArrayList]::new()
+
+$setupComputer = {
+    #Rename Server
+    Rename-Computer -ComputerName $env:COMPUTERNAME -NewName $serverName -PassThru -Force
+    Restart-Computer -Wait -For PowerShell -Timeout 300 -Delay 2
+
+    #Configure Network on Server
+    #Get-NetIPAddress -InterfaceIndex $networkAdapterInterfaceIndex -AddressFamily IPv4 | Set-NetIPAddress -IPAddress $serverIPv4Address
+    New-NetIPAddress -IPAddress $serverIPv4Address -AddressFamily IPv4 -PrefixLength $serverSubnetMask
+    Get-NetIPAddress -InterfaceAlias "ethernet*" -AddressFamily IPv4 | Remove-NetIPAddress -Confirm:$false
+    $x=1
+    $collectDNS = do {
+        $serverDNSAddress = Read-Host "Enter DNS Server IPv4 Address $x"
+        $serverDNSAddresses.add(($serverDNSAddress))
+        $x++
+    } While($x -le 2)
+    $x=$null
+    Get-DnsClientServerAddress -InterfaceIndex $networkAdapterInterfaceIndex -AddressFamily IPv4 | Set-DnsClientServerAddress -ServerAddresses $serverDNSAddresses
+    Add-Computer
+    Restart-Computer -Wait -For PowerShell -Timeout 300 -Delay 2
+}
+Invoke-Command -ComputerName $serverName -Credential $LocalCredential -ScriptBlock $setupComputer
+
+
 
 
 #Create Safemode Administrator Password for DC
@@ -48,17 +50,12 @@ do {
     }
 }while($safemodeAdministratorPassword -notlike $safemodeAdministratorPasswordConfirm)
 
-$locationPrefix = @(
-"ALC",
-"AME",
-"ASC",
-"AZR",
-"INC",
-"ISE",
-"MUC",
-"ONE",
-"TOK"
-)
+#Identify the Locations by their 3-letter Prefix
+$locationPrefix = [System.Collections.ArrayList]::new()
+do{
+    $entry = Read-Host "Please enter Location Prefix"
+    $locationPrefix.add(($entry))
+}while($entry -notlike $null)
 
 #Identify the Primary Domain Controller (FSMO MASTER)
 $PrimaryDomainController = "AME-DCT-PRD04"
@@ -69,8 +66,7 @@ $existingDCNames = get-adcomputer -Filter * -SearchBase "OU=Domain Controllers, 
 
 #Create DC Name
 $newDCName=[System.Collections.ArrayList]::new()
-
-Foreach ($prefix in $locationPrefix){
+foreach ($prefix in $locationPrefix){
  $prefixDCs = $existingDCNames | where name -like ("{0}*" -f $prefix) | select -ExpandProperty name
  $existingDCnumbers = @($prefixDCs | foreach {$_.substring(11)} | Sort-Object -Unique)
  $newNum = [int]$existingDCnumbers[-1]
@@ -81,18 +77,40 @@ Foreach ($prefix in $locationPrefix){
 
  }
 
- #Select Available DC Name
- $domainControllerNames = $newDCName | 
- Out-
- #Out-GridView -Title "Select Which DC(s) you would like to Configure" -OutputMode Multiple
+#Select Available DC Name
+$count = $newDCName.Count
+$hashNames = @{}
+$x=0
+do{
+    $hashNames.add($x, $newDCName[$x])
+    $x ++
+}while($x -lt $count)
+$x=$null
 
- #Install Domain Roles on DC
- $installDomainRoles = {
-    $domainControllerRoles = @(
-        "AD-Domain-Services",
-        "DNS"
-    )
-    Install-WindowsFeature -Name $domainControllerRoles
+$domainControllerNames = [System.Collections.ArrayList]::new()
+$hashnames | Out-Host
+do{
+    $value = Read-Host "Please Select a number for the Server you would like to create"
+    if($value -in $hashNames.Keys){
+        $name = $hashNames.Values[$value]
+        $domainControllerNames.add($name)
+    }elseif($value -notlike $null){
+        Write-Host "The option you entered does not exist"        
+    }else{
+        break
+    }
+} while($value -notlike $null)
+$domainControllerNames = $domainControllerNames | select -Unique
+ 
+#Out-GridView -Title "Select Which DC(s) you would like to Configure" -OutputMode Multiple
+
+#Install Domain Roles on DC
+$installDomainRoles = {
+$domainControllerRoles = @(
+    "AD-Domain-Services",
+    "DNS"
+)
+Install-WindowsFeature -Name $domainControllerRoles
 }
 Invoke-Command -ComputerName $domainControllerNames -ScriptBlock $installDomainRoles -Credential $domainCredential -AsJob
 
