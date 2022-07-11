@@ -4,18 +4,17 @@ $servers = [System.Collections.ArrayList]::new()
 ##Add names from a CS
 $getCSV = Import-Csv -Path #Enter Path Here
 $getCSV | foreach {
-$name = $_ | select -ExpandProperty #Property representing ADObject Name
-$servers.Add($name)
+    $name = $_ | select -ExpandProperty <#Property representing ADObject Name#>
+    $servers.Add($name)
 }
 
 ##Add names individually
-<#
 do{
-$servername = Read-Host "Please enter Host name"
-$servers.add(($servername))
+    $servername = Read-Host "Please enter Host name"
+    $servers.add(($servername))
 }while($servername -notlike $null)
 $servers.remove("")
-#>
+
 
 $servers | foreach{
     Get-ADObject -SearchBase <#Enter a Searchbase Here#> -Filter * -Properties lastlogontimestamp, pwdlastset,operatingsystem,operatingsystemversion|
