@@ -24,10 +24,10 @@ $AdminUsersNoSurname | foreach {
     $userSurname = $textinfo.ToTitleCase($_.givenname.split(" ")[-1])
     $userGivenName = $textinfo.ToTitleCase($_.givenname) -replace $userSurname
         
-    $_ | Set-ADUser -Surname "$userSurname" -WhatIf
+    $_ | Set-ADUser -Surname "$userSurname"
     Write-host ("Set {0} surname to {1}" -f $_.name, $userSurname) -ForegroundColor Cyan 
     
-    $_ | Set-ADUser -GivenName $userGivenName -WhatIf
+    $_ | Set-ADUser -GivenName $userGivenName
     Write-host ("Changed {0} givenName to {1}" -f $_.name, $userGivenName) -ForegroundColor DarkYellow
     Write-Host " "
 
