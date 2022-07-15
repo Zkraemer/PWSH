@@ -1,5 +1,7 @@
 ##Used to Standardize your users in Active Directory
 
+$textInfo = (Get-Culture).TextInfo
+
 $userOUs = @(<#Enter OU of Users#>)
 $domain = <#yourDomain.com#>
 
