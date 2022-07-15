@@ -10,15 +10,19 @@ $gposNoAuthUsers = Get-GPO -All | where{
     }
 }
 
+
+$count = 0
 $gposNoAuthUsers | foreach{
-    Set-GPPermission -Name $_.displayname -TargetName "Authenticated Users" -TargetType Group -PermissionLevel GpoRead -WhatIf
+    Set-GPPermission -Name $_.displayname -TargetName "Authenticated Users" -TargetType Group -PermissionLevel GpoRead
     Write-Host ("Added `"Authenticated Users`" with `"Read`" permission to {0}" -f $_.DisplayName) -ForegroundColor Cyan
     $_.DisplayName | Out-File -FilePath $filePath -Append 
+    $count++
 }
-
+Write-Host ("Total number of GPOs updated: {0}" -f $count) -ForegroundColor Yellow
 
 #Test on 1 GPO
 <#
+
 $gposNoAuthUsers = Get-GPO -All | where{
     $GPOName = $_.DisplayName
     $Perms = (Get-GPPermissions $GPOName -All).Trustee.Name;
@@ -34,4 +38,5 @@ $gposNoAuthUsers | foreach{
     Write-Host ("Added `"Authenticated Users`" with `"Read`" permission to {0}" -f $_.DisplayName) -ForegroundColor Cyan
     $_.DisplayName | Out-File -FilePath $filePath -Append
 }
+
 #>
