@@ -2,7 +2,7 @@ $runTime = get-date -Format "yyyyMMddHHmm"
 $servers = [System.Collections.ArrayList]::new()
 
 ##Add names from a CS
-$getCSV = Import-Csv -Path #Enter Path Here
+$getCSV = Import-Csv -Path <#Enter Path Here#>
 $getCSV | foreach {
     $name = $_ | select -ExpandProperty <#Property representing ADObject Name#>
     $servers.Add($name)
