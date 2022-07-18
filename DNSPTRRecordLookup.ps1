@@ -14,6 +14,7 @@ foreach ($server in $dnsservers){
     }
     if ($records -ne $null){
         $records | out-file -FilePath "~\desktop\DNSReverseLookupResults.txt" -Append
+        ("Total Records Found on {0}: {1}" -f $server,$records.count)
     }else{
        ("No Records Found on {0}" -f $server) | out-file -FilePath "~\desktop\DNSReverseLookupResults.txt" -Append
     }
