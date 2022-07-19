@@ -27,6 +27,9 @@ foreach ($server in $dnsservers){
 #Notes
 <#
 Use this script to find PTR records in the DNS Reverse Lookup Zones on specific Servers.
-This script will pull all files that match the 4 Quartet of the IP address.
+This script will pull all files that match the 4th Quartet of the IP address.
 Use this to Identify if there are mismatches or errors across your Domains DNS.
+
+I chose to do a search across all RLZs to make sure that none of the RLZs may be holding a record that matches the query.
+It's unlikely these files would be outside their specific IP RLZ. Changes may be made to narrow this in the future.
 #>
