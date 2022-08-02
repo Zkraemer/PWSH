@@ -6,7 +6,7 @@ $adUsers = get-aduser -filter * -SearchBase "Replace with OU or Remove Parameter
 #Uses the mail property of the user to identify user then assign appropriate telephoneNumber
 $usersCSV = $csv | foreach { $adUsers |
 where -property mail -match $_.mail | 
-Set-ADUser -Add @(telephoneNumber="$csv.telephoneNumber")}
+Set-ADUser -Add @(telephoneNumber="$_.telephoneNumber")}
 
 #Notes
 <#
